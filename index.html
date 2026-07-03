@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Чистый Крафт</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #1a1a1a; font-family: 'Segoe UI', system-ui, sans-serif; touch-action: none; }
+        canvas { display: block; background: #5c94fc; width: 100%; height: 100%; }
+        
+        #status {
+            position: fixed; top: 12px; left: 12px;
+            color: #0f0; font-size: 14px; font-weight: bold;
+            background: rgba(0,0,0,0.7); padding: 6px 14px;
+            border-radius: 20px; z-index: 10;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        #message {
+            position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+            color: #fff; font-size: 16px; font-weight: bold;
+            background: rgba(0,0,0,0.8); padding: 8px 20px;
+            border-radius: 12px; z-index: 10;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.1);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            text-align: center;
+            max-width: 80%;
+        }
+        #message.show { opacity: 1; }
+        #message.success { border-color: #4CAF50; color: #4CAF50; }
+        #message.error { border-color: #ff4444; color: #ff4444; }
+        
+        #controls {
+            position: fixed; bottom: 20px; left: 0; right: 0;
+            display: flex; justify-content: space-between;
+            padding: 0 16px; z-index: 10;
+            gap: 10px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            background: rgba(0,0,0,0.4);
+            padding: 8px 12px;
+            border-radius: 60px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .ctrl-btn {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            touch-action: none;
+            transition: all 0.1s;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .ctrl-btn:active { transform: scale(0.92); background: rgba(255,255,255,0.25); }
+        
+        #login {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+        #login-box {
+            background: #2d2d2d;
+            padding: 40px 32px;
+            border-radius: 24px;
+            text-align: center;
+            max-width: 340px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        #login-box h1 {
+            color: #4CAF50;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        #login-box p {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+        #login-box input, #login-box select {
+            display: block; width: 100%;
+            padding: 14px; margin: 8px 0;
+            border-radius: 12px; border: none;
+            font-size: 16px;
+            background: #3d3d3d;
+            color: #fff;
+        }
+        #login-box select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 20px;
+            cursor: pointer;
+        }
+        #login-box select option {
+            background: #2d2d2d;
+        }
+        #login-box button {
+            background: #4CAF50;
+            color: #fff; border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 12px;
+            transition: all 0.2s;
+        }
+        #login-box button:active { transform: scale(0.96); }
+        #login-box label {
+            display: block; text-align: left;
+            color: #aaa; font-size: 13px;
+            margin: 12px 0 4px;
+        }
+        
+        #hotbar {
+            position: fixed; bottom: 100px;
+            left: 50%; transform: translateX(-50%);
+            display: flex; gap: 4px;
+            background: rgba(0,0,0,0.65);
+            padding: 6px 10px;
+            border-radius: 14px;
+            z-index: 15;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(4px);
+        }
+        .slot {
+            width: 44px; height: 44px;
+            background: rgba(60,60,60,0.7);
+            border: 2px solid #444;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #fff;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.15s;
+        }
+        .slot.active {
+            border-color: #ffcc00;
+            box-shadow: 0 0 16px rgba(255,204,0,0.3);
+            background: rgba(255,204,0,0.1);
+        }
+        .slot .item-icon {
+            width: 32px; height: 32px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            background-size: cover;
+        }
+        .slot .item-count {
+            position: absolute;
+            bottom: 1px; right: 4px;
+            font-size: 10px;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        }
+        
+        #creative-inventory {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.92);
+            padding: 20px;
+            border-radius: 16px;
+            z-index: 100;
+            display: none;
+            max-width: 400px;
+            width: 90%;
+            max-height: 70vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(8px);
+        }
+        #creative-inventory.show { display: block; }
+        #creative-inventory h2 {
+            color: #ffcc00;
+            text-align: center;
+            margin-bottom: 16px;
+            font-size: 20px;
+        }
+        .creative-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        .creative-item {
+            background: rgba(60,60,60,0.7);
+            border: 2px solid #444;
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            color: #fff;
+            font-size: 12px;
+        }
+        .creative-item:hover {
+            border-color: #ffcc00;
+            background: rgba(255,204,0,0.1);
+        }
+        .creative-item .item-preview {
+            width: 32px;
+            height: 32px;
+            margin: 0 auto 4px;
+            border-radius: 4px;
+            background-size: cover;
+        }
+        .creative-close {
+            background: #ff4444;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 12px;
+            width: 100%;
+        }
+        
+        #leaderboard {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.92);
+            padding: 24px;
+            border-radius: 16px;
+            z-index: 50;
+            display: none;
+            min-width: 300px;
+            max-width: 400px;
+            width: 90%;
+            max-height: 70vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(8px);
+        }
+        #leaderboard.show { display: block; }
+        #leaderboard h2 {
+            color: #ffcc00;
+            text-align: center;
+            margin-bottom: 16px;
+            font-size: 20px;
+        }
+        .lb-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: rgba(60,60,60,0.5);
+            border-radius: 8px;
+            color: #fff;
+        }
+        .lb-item .lb-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            background-size: cover;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .lb-item .lb-name { flex: 1; font-weight: bold; }
+        .lb-item .lb-role {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.1);
+        }
+        .lb-close {
+            background: #ff4444;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 12px;
+            width: 100%;
+        }
+        
+        #chat-container {
+            position: fixed;
+            bottom: 170px;
+            left: 10px;
+            z-index: 20;
+            display: flex;
+            gap: 6px;
+        }
+        #chat-input {
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: none;
+            width: 180px;
+            background: rgba(0,0,0,0.75);
+            color: #fff;
+            font-size: 14px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        #chat-input::placeholder { color: #888; }
+        #chat-send {
+            padding: 8px 14px;
+            border-radius: 12px;
+            border: none;
+            background: #4CAF50;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        #chat-send:active { transform: scale(0.92); }
+    </style>
+</head>
+<body>
+
+<div id="login">
+    <div id="login-box">
+        <h1>⛏️ Чистый Крафт</h1>
+        <p>Выбери персонажа</p>
+        <label>Ваш ник</label>
+        <input type="text" id="name-input" placeholder="Игрок" maxlength="12" value="Бро">
+        <label>Скин</label>
+        <select id="skin-select"></select>
+        <button id="play-btn">🚀 Играть</button>
+    </div>
+</div>
+
+<div id="status">Подключение...</div>
+<div id="message"></div>
+
+<div id="hotbar"></div>
+
+<div id="creative-inventory">
+    <h2>🎨 Креативный инвентарь</h2>
+    <div class="creative-grid" id="creative-grid"></div>
+    <button class="creative-close" id="creative-close">✕ Закрыть</button>
+</div>
+
+<div id="leaderboard">
+    <h2>👑 Игроки</h2>
+    <div id="lb-list"></div>
+    <button class="lb-close" id="lb-close">✕ Закрыть</button>
+</div>
+
+<div id="controls">
+    <div class="btn-group">
+        <div class="ctrl-btn" id="btnLeft">◀</div>
+        <div class="ctrl-btn" id="btnRight">▶</div>
+        <div class="ctrl-btn" id="btnJump">▲</div>
+        <div class="ctrl-btn" id="btnDown">▼</div>
+    </div>
+    <div class="btn-group">
+        <div class="ctrl-btn" id="btnTab" style="font-size:16px;">👑</div>
+    </div>
+</div>
+
+<div id="chat-container">
+    <input type="text" id="chat-input" placeholder="Команда /help...">
+    <button id="chat-send">➤</button>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const statusDiv = document.getElementById('status');
+    const messageDiv = document.getElementById('message');
+    const hotbar = document.getElementById('hotbar');
+    const creativeInventory = document.getElementById('creative-inventory');
+    const creativeGrid = document.getElementById('creative-grid');
+    const leaderboard = document.getElementById('leaderboard');
+    const lbList = document.getElementById('lb-list');
+    const skinSelect = document.getElementById('skin-select');
+    const chatInput = document.getElementById('chat-input');
+    const chatSend = document.getElementById('chat-send');
+    
+    // === СПИСОК СКИНОВ ===
+    const SKIN_FILES = [
+        'novice.png',
+        'testerTW.png',
+        'shadow.png',
+        'energy.png',
+        'fire.png',
+        'mod.png',
+        'admin.png',
+        'owner.png'
+    ];
+    
+    SKIN_FILES.forEach(file => {
+        const option = document.createElement('option');
+        option.value = file;
+        let name = file.replace(/\.[^.]+$/, '');
+        name = name.charAt(0).toUpperCase() + name.slice(1);
+        option.textContent = '👤 ' + name;
+        skinSelect.appendChild(option);
+    });
+    
+    // === ПЕРЕМЕННЫЕ ===
+    let pid = null;
+    let name = '';
+    let skinFile = 'novice.png';
+    let px = 0, py = 0.8;
+    let vx = 0, vy = 0;
+    let onGround = false;
+    let blocks = {};
+    let players = {};
+    let selectedSlot = 0;
+    let inventory = {};
+    let isPlacing = false;
+    let creativeItems = [];
+    let myCoins = 0;
+    let unlockedSkins = [];
+    
+    const GRAVITY = 0.5;
+    const JUMP_SPEED = -2.8;
+    const MOVE_SPEED = 0.25;
+    const PLAYER_HEIGHT = 0.7;
+    const PLAYER_WIDTH = 0.35;
+    const PLACE_DISTANCE = 2.5;
+    
+    const textureCache = {};
+    
+    function loadTexture(name) {
+        if (textureCache[name]) return textureCache[name];
+        const img = new Image();
+        img.src = 'assets/' + name;
+        textureCache[name] = img;
+        return img;
+    }
+    
+    const playerImg = new Image();
+    let spriteLoaded = false;
+    
+    function loadSkin(filename) {
+        playerImg.src = 'assets/' + filename;
+        spriteLoaded = false;
+        playerImg.onload = () => { spriteLoaded = true; };
+        playerImg.onerror = () => { spriteLoaded = false; };
+    }
+    
+    function getScale() {
+        const min = Math.min(canvas.width, canvas.height);
+        return Math.max(30, Math.min(70, min / 15));
+    }
+    
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    function showMessage(text, type = 'info', duration = 2500) {
+        messageDiv.textContent = text;
+        messageDiv.className = 'show ' + type;
+        clearTimeout(messageDiv._timeout);
+        messageDiv._timeout = setTimeout(() => {
+            messageDiv.className = '';
+        }, duration);
+    }
+    
+    // === ЧАТ / КОМАНДЫ ===
+    chatSend.addEventListener('click', sendCommand);
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendCommand();
+    });
+    
+    function sendCommand() {
+        const text = chatInput.value.trim();
+        if (!text) return;
+        chatInput.value = '';
+        
+        if (text.startsWith('/')) {
+            fetch('/command', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pid: pid, cmd: text })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.result) {
+                    showMessage(data.result, 'success', 4000);
+                }
+                // Обновляем данные
+                if (data.coins !== undefined) myCoins = data.coins;
+                if (data.unlocked_skins) unlockedSkins = data.unlocked_skins;
+            })
+            .catch(() => showMessage('❌ Ошибка команды', 'error'));
+        } else {
+            // Обычный чат
+            showMessage('💬 ' + name + ': ' + text, 'info', 3000);
+        }
+    }
+    
+    // === ЛИДЕРБОРД ===
+    function openLeaderboard() {
+        lbList.innerHTML = '';
+        const sorted = Object.values(players).sort((a,b) => a.name.localeCompare(b.name));
+        sorted.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'lb-item';
+            const icon = document.createElement('div');
+            icon.className = 'lb-icon';
+            const role = p.role || 'player';
+            if (role === 'owner') { icon.textContent = '👑'; icon.style.background = 'rgba(255,204,0,0.2)'; }
+            else if (role === 'admin') { icon.textContent = '⚡'; icon.style.background = 'rgba(255,68,68,0.2)'; }
+            else if (role === 'mod') { icon.textContent = '🛡️'; icon.style.background = 'rgba(68,170,255,0.2)'; }
+            else { icon.textContent = '👤'; icon.style.background = 'rgba(76,175,80,0.2)'; }
+            div.appendChild(icon);
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'lb-name';
+            nameSpan.textContent = p.name || 'Аноним';
+            div.appendChild(nameSpan);
+            const roleSpan = document.createElement('span');
+            roleSpan.className = 'lb-role';
+            roleSpan.textContent = role;
+            div.appendChild(roleSpan);
+            lbList.appendChild(div);
+        });
+        leaderboard.classList.add('show');
+    }
+    
+    document.getElementById('lb-close').addEventListener('click', () => {
+        leaderboard.classList.remove('show');
+    });
+    
+    document.getElementById('btnTab').addEventListener('click', openLeaderboard);
+    
+    // === ЛОГИН ===
+    document.getElementById('play-btn').addEventListener('click', async () => {
+        name = document.getElementById('name-input').value.trim() || 'Игрок';
+        skinFile = skinSelect.value;
+        pid = 'p' + Math.random().toString(36).substr(2, 6);
+        document.getElementById('login').style.display = 'none';
+        
+        loadSkin(skinFile);
+        
+        try {
+            const res = await fetch('/join', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pid, name, skin: skinFile })
+            });
+            const data = await res.json();
+            if (data.status === 'ok') {
+                players = data.players || {};
+                blocks = {};
+                (data.blocks || []).forEach(b => { blocks[b.x+','+b.y] = b; });
+                inventory = data.inventory || {};
+                myCoins = data.coins || 0;
+                unlockedSkins = data.unlocked_skins || ['novice.png'];
+                statusDiv.innerText = '👤 ' + name + ' | 💰 ' + Math.floor(myCoins);
+                initHotbar();
+                loadCreativeItems();
+                showMessage('✅ Добро пожаловать, ' + name + '!', 'success', 2000);
+            }
+        } catch(e) {
+            showMessage('❌ Ошибка подключения к серверу', 'error');
+        }
+    });
+    
+    // === КРЕАТИВ ===
+    async function loadCreativeItems() {
+        try {
+            const res = await fetch('/creative_items');
+            const data = await res.json();
+            creativeItems = data.items || ['grass', 'stone', 'wood', 'barrier'];
+        } catch(e) {
+            creativeItems = ['grass', 'stone', 'wood', 'barrier'];
+        }
+    }
+    
+    function openCreative() {
+        creativeGrid.innerHTML = '';
+        creativeItems.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'creative-item';
+            const preview = document.createElement('div');
+            preview.className = 'item-preview';
+            const img = loadTexture(item + '.png');
+            if (img.complete && img.naturalWidth > 0) {
+                preview.style.backgroundImage = `url('assets/${item}.png')`;
+                preview.style.backgroundSize = 'cover';
+            } else {
+                const colors = { grass: '#8B6B4D', stone: '#808080', wood: '#8B5A2B', barrier: '#FF0000' };
+                preview.style.background = colors[item] || '#888';
+            }
+            div.appendChild(preview);
+            const label = document.createElement('div');
+            label.textContent = item;
+            div.appendChild(label);
+            div.addEventListener('click', async () => {
+                await fetch('/creative_give', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pid, block_type: item })
+                });
+                const res = await fetch('/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pid, x: px, y: py })
+                });
+                const data = await res.json();
+                if (data.inventory) {
+                    inventory = data.inventory;
+                    initHotbar();
+                    showMessage(`✅ Получено 64x ${item}`, 'success', 1000);
+                }
+            });
+            creativeGrid.appendChild(div);
+        });
+        creativeInventory.classList.add('show');
+    }
+    
+    document.getElementById('creative-close').addEventListener('click', () => {
+        creativeInventory.classList.remove('show');
+    });
+    
+    // === ХОТБАР ===
+    function initHotbar() {
+        const items = [];
+        for (let [blockType, count] of Object.entries(inventory)) {
+            if (count > 0) {
+                items.push({ type: 'block', id: blockType, count: count });
+            }
+        }
+        items.push({ type: 'tool', id: 'pickaxe' });
+        items.push({ type: 'creative' });
+        while (items.length < 10) items.push(null);
+        
+        window.displayInventory = items;
+        
+        hotbar.innerHTML = '';
+        for (let i = 0; i < items.length; i++) {
+            const slot = document.createElement('div');
+            slot.className = 'slot';
+            slot.dataset.index = i;
+            if (i === selectedSlot) slot.classList.add('active');
+            slot.addEventListener('click', () => {
+                if (items[i] && items[i].type === 'creative') {
+                    openCreative();
+                    return;
+                }
+                selectedSlot = i;
+                updateHotbar();
+            });
+            hotbar.appendChild(slot);
+        }
+        updateHotbar();
+    }
+    
+    function updateHotbar() {
+        const items = window.displayInventory || [];
+        const slots = hotbar.querySelectorAll('.slot');
+        slots.forEach((slot, i) => {
+            slot.classList.toggle('active', i === selectedSlot);
+            const item = items[i];
+            if (item) {
+                if (item.type === 'block') {
+                    const img = loadTexture(item.id + '.png');
+                    let style = '';
+                    if (img.complete && img.naturalWidth > 0) {
+                        style = `background-image: url('assets/${item.id}.png'); background-size: cover;`;
+                    } else {
+                        const colors = { grass: '#8B6B4D', stone: '#808080', wood: '#8B5A2B', barrier: '#FF0000' };
+                        style = `background: ${colors[item.id] || '#888'};`;
+                    }
+                    slot.innerHTML = `<div class="item-icon" style="${style}"></div>`;
+                    if (item.count > 1) slot.innerHTML += `<span class="item-count">${item.count}</span>`;
+                } else if (item.type === 'tool') {
+                    slot.innerHTML = `<div class="item-icon">⛏️</div>`;
+                } else if (item.type === 'creative') {
+                    slot.innerHTML = `<div class="item-icon" style="font-size:20px;">⋯</div>`;
+                }
+            } else {
+                slot.innerHTML = '';
+            }
+        });
+    }
+    
+    function getSelectedItem() {
+        const items = window.displayInventory || [];
+        return items[selectedSlot] || null;
+    }
+    
+    // === УПРАВЛЕНИЕ ===
+    let keys = { left: false, right: false, jump: false, down: false };
+    ['btnLeft','btnRight','btnJump','btnDown'].forEach(id => {
+        const el = document.getElementById(id);
+        const key = id.replace('btn', '').toLowerCase();
+        el.addEventListener('touchstart', e => { e.preventDefault(); keys[key] = true; });
+        el.addEventListener('touchend', e => { e.preventDefault(); keys[key] = false; });
+        el.addEventListener('touchcancel', e => { keys[key] = false; });
+    });
+    
+    // === КОЛЛИЗИЯ ===
+    function isSolid(x, y) {
+        const halfW = PLAYER_WIDTH / 2;
+        const halfH = PLAYER_HEIGHT / 2;
+        const points = [
+            [x - halfW, y - halfH],
+            [x + halfW, y - halfH],
+            [x - halfW, y + halfH],
+            [x + halfW, y + halfH]
+        ];
+        for (let p of points) {
+            const bx = Math.round(p[0]);
+            const by = Math.round(p[1]);
+            const key = bx + ',' + by;
+            if (blocks[key] && blocks[key].type !== 'air') {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    // === ФИЗИКА ===
+    function updatePhysics() {
+        if (keys.left) vx = -MOVE_SPEED;
+        else if (keys.right) vx = MOVE_SPEED;
+        else vx *= 0.85;
+        
+        if (keys.jump && onGround) {
+            vy = JUMP_SPEED;
+            onGround = false;
+        }
+        if (keys.down) vy += 0.3;
+        
+        vy += GRAVITY;
+        if (vy > 6) vy = 6;
+        
+        let newX = px + vx;
+        if (!isSolid(newX, py)) {
+            px = newX;
+        } else {
+            vx = 0;
+        }
+        
+        let steps = Math.ceil(Math.abs(vy) / 0.1);
+        if (steps < 1) steps = 1;
+        let stepY = vy / steps;
+        for (let i = 0; i < steps; i++) {
+            let testY = py - stepY;
+            if (!isSolid(px, testY)) {
+                py = testY;
+            } else {
+                if (vy > 0) onGround = true;
+                vy = 0;
+                break;
+            }
+        }
+    }
+    
+    // === ВЗАИМОДЕЙСТВИЕ С БЛОКАМИ ===
+    function handleBlockAction(e) {
+        if (isPlacing) return;
+        
+        const item = getSelectedItem();
+        if (!item || item.type === 'creative') {
+            showMessage('Выберите блок или кирку', 'error', 1500);
+            return;
+        }
+        
+        const rect = canvas.getBoundingClientRect();
+        const scale = getScale();
+        const offsetX = (canvas.width/2) - px*scale;
+        const offsetY = (canvas.height/2) + py*scale;
+        let clientX, clientY;
+        if (e.touches) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+            e.preventDefault();
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        const mx = (clientX - rect.left - offsetX) / scale;
+        const my = (clientY - rect.top - offsetY) / scale;
+        const tx = Math.round(mx), ty = Math.round(-my);
+        
+        const key = tx+','+ty;
+        const blockExists = blocks[key] !== undefined;
+        let action = null;
+        let blockType = null;
+        
+        const dist = Math.sqrt((px - tx)**2 + (py - ty)**2);
+        if (dist > PLACE_DISTANCE) {
+            showMessage('❌ Слишком далеко', 'error', 1500);
+            return;
+        }
+        
+        if (item.type === 'block' && !blockExists) {
+            action = 'place';
+            blockType = item.id;
+        } else if (item.type === 'tool' && blockExists) {
+            action = 'break';
+        } else if (item.type === 'block' && blockExists) {
+            showMessage('Блок уже занят', 'error', 1000);
+            return;
+        }
+        
+        if (!action) {
+            showMessage('Нечего делать', 'error', 1000);
+            return;
+        }
+        
+        isPlacing = true;
+        
+        fetch('/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pid, x: px, y: py, tx, ty, action, block_type: blockType })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.action_result && data.action_result.success) {
+                blocks = {};
+                (data.blocks || []).forEach(b => { blocks[b.x+','+b.y] = b; });
+                inventory = data.inventory || {};
+                if (data.coins !== undefined) myCoins = data.coins;
+                statusDiv.innerText = '👤 ' + name + ' | 💰 ' + Math.floor(myCoins);
+                initHotbar();
+                showMessage('✅ Готово', 'success', 600);
+            } else {
+                if (data.inventory) {
+                    inventory = data.inventory;
+                    initHotbar();
+                }
+                const msg = data.action_result ? data.action_result.message : 'Ошибка';
+                showMessage('❌ ' + msg, 'error', 1500);
+            }
+        })
+        .catch(err => {
+            showMessage('❌ Ошибка соединения', 'error', 1500);
+        })
+        .finally(() => {
+            isPlacing = false;
+        });
+    }
+    
+    canvas.addEventListener('click', handleBlockAction);
+    canvas.addEventListener('touchstart', handleBlockAction);
+    
+    // === ЦИКЛ ОБНОВЛЕНИЯ ===
+    setInterval(() => {
+        if (!pid) return;
+        updatePhysics();
+        fetch('/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pid, x: px, y: py })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) return;
+            if (!isPlacing) {
+                blocks = {};
+                (data.blocks || []).forEach(b => { blocks[b.x+','+b.y] = b; });
+                if (data.players) players = data.players;
+                if (data.inventory) {
+                    inventory = data.inventory;
+                    initHotbar();
+                }
+                if (data.coins !== undefined) {
+                    myCoins = data.coins;
+                    statusDiv.innerText = '👤 ' + name + ' | 💰 ' + Math.floor(myCoins);
+                }
+            }
+        })
+        .catch(() => {});
+    }, 80);
+    
+    // === ОТРИСОВКА ===
+    const COLORS = {
+        grass: '#8B6B4D',
+        stone: '#808080',
+        wood: '#8B5A2B',
+        barrier: '#FF0000'
+    };
+    
+    function drawBlock(x, y, type) {
+        const scale = getScale();
+        const offsetX = (canvas.width/2) - px*scale;
+        const offsetY = (canvas.height/2) + py*scale;
+        const sx = offsetX + x*scale;
+        const sy = offsetY - y*scale - scale;
+        
+        const img = textureCache[type + '.png'];
+        if (img && img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, sx, sy, scale, scale);
+        } else {
+            ctx.fillStyle = COLORS[type] || '#888';
+            ctx.fillRect(sx, sy, scale, scale);
+        }
+        
+        if (type === 'barrier') {
+            ctx.fillStyle = 'rgba(255,0,0,0.2)';
+            ctx.fillRect(sx, sy, scale, scale);
+            ctx.strokeStyle = '#FF0000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(sx + 4, sy + 4);
+            ctx.lineTo(sx + scale - 4, sy + scale - 4);
+            ctx.moveTo(sx + scale - 4, sy + 4);
+            ctx.lineTo(sx + 4, sy + scale - 4);
+            ctx.stroke();
+        }
+        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(sx, sy, scale, scale);
+    }
+    
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const grad = ctx.createLinearGradient(0,0,0,canvas.height);
+        grad.addColorStop(0, '#4A90D9');
+        grad.addColorStop(0.7, '#87CEEB');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        
+        const scale = getScale();
+        const offsetX = (canvas.width/2) - px*scale;
+        const offsetY = (canvas.height/2) + py*scale;
+        
+        const blockList = Object.values(blocks).sort((a,b) => a.y - b.y);
+        blockList.forEach(b => drawBlock(b.x, b.y, b.type));
+        
+        // Игроки
+        for (let id in players) {
+            if (id === pid) continue;
+            const p = players[id];
+            const x = offsetX + p.x*scale;
+            const y = offsetY - p.y*scale;
+            const size = scale * 0.7;
+            
+            const skin = p.skin || 'novice.png';
+            const img = loadTexture(skin);
+            if (img.complete && img.naturalWidth > 0) {
+                ctx.save();
+                ctx.imageSmoothingEnabled = true;
+                ctx.drawImage(img, x - size/2, y - size, size, size);
+                ctx.restore();
+            } else {
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillRect(x - size/2, y - size, size, size);
+            }
+            
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${scale*0.3}px system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(0,0,0,0.9)';
+            ctx.shadowBlur = 8;
+            ctx.fillText(p.name || id, x, y - size - 6);
+            ctx.shadowBlur = 0;
+        }
+        
+        // Себя рисуем сверху
+        const self = players[pid];
+        if (self) {
+            const x = offsetX + self.x*scale;
+            const y = offsetY - self.y*scale;
+            const size = scale * 0.7;
+            
+            const img = loadTexture(skinFile);
+            if (img.complete && img.naturalWidth > 0) {
+                ctx.save();
+                ctx.imageSmoothingEnabled = true;
+                ctx.drawImage(img, x - size/2, y - size, size, size);
+                ctx.restore();
+            } else {
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillRect(x - size/2, y - size, size, size);
+            }
+            
+            ctx.fillStyle = '#00ff88';
+            ctx.font = `bold ${scale*0.3}px system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(0,0,0,0.9)';
+            ctx.shadowBlur = 8;
+            ctx.fillText(self.name || pid, x, y - size - 6);
+            ctx.shadowBlur = 0;
+        }
+        
+        requestAnimationFrame(draw);
+    }
+    draw();
+</script>
+</body>
+</html>
