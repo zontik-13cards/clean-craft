@@ -142,8 +142,8 @@ MIT — используй как хочешь, но упоминай автор
 
 🙏 Автор
 
-Сделано с ❤️ и сигаретой в зубах
-Твой Ник — [https://github.com/zontik-13cards/]
+Сделано с ❤️
+Zontik — [https://github.com/zontik-13cards/]
 
 ---
 
